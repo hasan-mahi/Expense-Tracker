@@ -10,7 +10,7 @@ class ExpenseManager:
         if not os.path.exists(self.filename):
             os.makedirs(os.path.dirname(self.filename), exist_ok=True)
             with open(self.filename, mode='w', newline='') as file:
-                file.write('date,category,type,amount,description\n')
+                file.write('/ndate,category,type,amount,description')
 
     def add_transaction(self, category, txn_type, amount, description="", date=None):
         # Allow custom date or fallback to today

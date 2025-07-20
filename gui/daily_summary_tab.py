@@ -2,10 +2,15 @@ import ttkbootstrap as tb
 from collections import defaultdict
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+import numpy as np  # Add numpy for bar positioning
 
 def create_summary_tab(tab_control, manager):
     tab = tb.Frame(tab_control)
     tab_control.add(tab, text='📊 Daily Summary')
+
+    # Frame for the Refresh button on top
+    btn_frame = tb.Frame(tab)
+    btn_frame.pack(fill='x', pady=10)
 
     tree = tb.Treeview(tab, columns=("Date", "Income", "Expense", "Net"), show='headings')
     for col in tree["columns"]:
@@ -41,7 +46,6 @@ def create_summary_tab(tab_control, manager):
     def plot_chart():
         nonlocal canvas  # to modify outer canvas variable
 
-        # Clear previous canvas if exists
         if canvas is not None:
             canvas.get_tk_widget().destroy()
 
@@ -61,20 +65,43 @@ def create_summary_tab(tab_control, manager):
         income = [daily_data[d]["Income"] for d in dates]
         expense = [daily_data[d]["Expense"] for d in dates]
 
-        fig, ax = plt.subplots(figsize=(7, 3), dpi=100)
-        ax.bar(dates, income, label="Income", color='green')
-        ax.bar(dates, expense, label="Expense", color='red', bottom=income)
-        ax.set_ylabel("Amount")
-        ax.set_title("Daily Income vs Expense")
+        x = np.arange(len(dates))
+        width = 0.35
+
+        fig, ax = plt.subplots(figsize=(8, 4), dpi=100)
+
+        bars_income = ax.bar(x - width/2, income, width, label='Income', color='green')
+        bars_expense = ax.bar(x + width/2, expense, width, label='Expense', color='red')
+
+        ax.set_ylabel('Amount')
+        ax.set_title('Daily Income vs Expense')
+        ax.set_xticks(x)
+        ax.set_xticklabels(dates, rotation=45, ha='right')
         ax.legend()
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        def autolabel(bars):
+            for bar in bars:
+                height = bar.get_height()
+                ax.annotate(f'{height:.2f}',
+                            xy=(bar.get_x() + bar.get_width() / 2, height),
+                            xytext=(0, 3),
+                            textcoords="offset points",
+                            ha='center', va='bottom', fontsize=8)
+
+        autolabel(bars_income)
+        autolabel(bars_expense)
+
         fig.tight_layout()
 
         canvas = FigureCanvasTkAgg(fig, master=canvas_container)
         canvas.draw()
         canvas.get_tk_widget().pack()
 
-    tb.Button(tab, text="Refresh Summary + Chart", command=lambda: [load_summary(), plot_chart()]).pack(pady=10)
+    # Add styled refresh button on top
+    refresh_btn = tb.Button(btn_frame, text="Refresh Summary + Chart", bootstyle="success-outline", command=lambda: [load_summary(), plot_chart()])
+    refresh_btn.pack(padx=10, pady=5, anchor='w')
 
-    # Optionally, load data and chart on tab creation:
+    # Load data & chart initially
     load_summary()
     plot_chart()
